@@ -1,0 +1,1650 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PuniQ Prompt Diff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --surface: #111827;
+      --surface2: #1a2236;
+      --surface3: #1e2840;
+      --text: #e2e8f0;
+      --text-soft: #94a3b8;
+      --accent: #fd6bb6;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --ok: #34d399;
+      --border: rgba(255,255,255,.08);
+      --border-soft: rgba(255,255,255,.05);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,.4);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* ── HEADER ── */
+    header {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 36px 24px 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .header-left {}
+    h1 {
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 10px;
+      font-family: "Science Gothic", system-ui, sans-serif;
+      font-size: clamp(22px, 3.5vw, 34px);
+      font-weight: 900;
+      letter-spacing: 0;
+      color: #FD6BB6;
+    }
+    .app-version {
+      color: var(--text-soft);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .subtitle {
+      color: var(--text-soft);
+      margin-top: 6px;
+      font-size: 13px;
+    }
+    /* ── MAIN ── */
+    main { max-width: 1440px; margin: 0 auto; padding: 0 24px 60px; }
+    /* ── GRID / CARD ── */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+    .card-head-main { min-width: 120px; }
+    .card-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .card-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--text-soft); font-size: 12px; flex: 1 1 auto; }
+    .card-controls label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+    .card-title { font-weight: 700; font-size: 15px; letter-spacing: .02em; color: var(--text); }
+    .counter { color: var(--text-soft); font-size: 12px; }
+    /* ── ACCORDION ── */
+    .accordion-toggle {
+      all: unset;
+      display: flex;
+      width: 100%;
+      box-sizing: border-box;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      cursor: pointer;
+      border-radius: 0;
+    }
+    .accordion-toggle:hover { background: rgba(255,255,255,.03); }
+    .accordion-toggle .card-head-main { display: flex; align-items: center; gap: 8px; }
+    .accordion-arrow {
+      display: inline-block;
+      font-size: 10px;
+      color: var(--text-soft);
+      transition: transform .15s;
+      flex-shrink: 0;
+    }
+    .accordion-toggle[aria-expanded="true"] .accordion-arrow { transform: rotate(90deg); }
+    .accordion-body {
+      overflow: hidden;
+      max-height: 0;
+      min-height: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      transition: max-height .2s ease;
+    }
+    .collapsible.is-open .accordion-body {
+      min-height: 140px !important;
+      padding-top: 14px !important;
+      padding-bottom: 14px !important;
+    }
+    .accordion-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(253,107,182,.16);
+      color: var(--accent);
+      margin-left: 4px;
+    }
+    /* ── TEXTAREA ── */
+    textarea {
+      display: block;
+      width: 100%; min-height: 240px; resize: vertical; border: 0; outline: 0;
+      background: rgba(0,0,0,.25); color: var(--text); padding: 16px;
+      font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      transition: background .15s;
+      border-radius: 0 0 var(--radius) var(--radius);
+      vertical-align: top;
+    }
+    textarea:focus { background: rgba(0,0,0,.35); }
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0;
+      align-items: center;
+    }
+    .toolbar-divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+    /* ── BUTTONS ── */
+    button, select { font: inherit; }
+    button {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: var(--surface2);
+      padding: 9px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: background .12s, border-color .12s, transform .08s;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--surface3); border-color: rgba(255,255,255,.18); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    button:disabled:hover { background: var(--surface2); border-color: var(--border); transform: none; }
+    .btn-primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 700; }
+    .btn-primary:hover { opacity: .88; background: var(--accent); }
+    .btn-danger { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.3); color: var(--danger); }
+    .btn-danger:hover { background: rgba(248,113,113,.22); }
+    .btn-ghost { background: transparent; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    /* ── RESULTS ── */
+    .results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .results .card-actions { justify-content: flex-start; flex-wrap: wrap; }
+    .section-body { padding: 14px; min-height: 140px; }
+    /* ── CHIPS ── */
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+    .chip {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 6px 11px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 12px;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+      text-align: left;
+      line-height: 1.5;
+      transition: background .12s, border-color .12s, transform .08s;
+    }
+    .chip:hover { transform: translateY(-1px); }
+    .chip.common { background: rgba(253,107,182,.12); border-color: rgba(253,107,182,.32); color: #fd6bb6; }
+    .chip.aonly  { background: rgba(56,189,248,.1); border-color: rgba(56,189,248,.28); color: #7dd3fc; }
+    .chip.bonly  { background: rgba(251,191,36,.09); border-color: rgba(251,191,36,.28); color: #fcd34d; }
+    .chip.selected { background: rgba(248,113,113,.15); border-color: rgba(248,113,113,.4); text-decoration: line-through; color: var(--danger); }
+    .chip.hover-link { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: 0 0 0 4px rgba(10,143,143,.18); }
+    .saved-set-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+      background: rgba(255,255,255,.03);
+    }
+    .saved-set-info { min-width: 0; flex: 1; }
+    .saved-set-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; overflow-wrap: anywhere; }
+    .saved-set-meta { color: var(--text-soft); font-size: 11px; }
+    .saved-set-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    /* ── SIMILAR ── */
+    .similar-list { display: grid; gap: 8px; }
+    .duplicate-list { display: grid; gap: 10px; }
+    .duplicate-group {
+      display: grid; gap: 8px; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.03);
+    }
+    .duplicate-group-head {
+      display: flex; justify-content: space-between; gap: 10px;
+      color: var(--text-soft); font-size: 12px;
+    }
+    .duplicate-options { display: flex; flex-wrap: wrap; gap: 6px; }
+    .duplicate-choice { position: relative; display: inline-flex; align-items: center; }
+    .duplicate-choice input {
+      position: absolute; inline-size: 1px; block-size: 1px;
+      opacity: 0; pointer-events: none;
+    }
+    .chip.duplicate-remove {
+      background: rgba(248,113,113,.12);
+      border-color: rgba(248,113,113,.35);
+      color: var(--danger);
+      text-decoration: line-through;
+      opacity: .72;
+    }
+    .chip.duplicate-remove::before { color: var(--danger); }
+    .similar-item {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.03);
+      font-size: 12px;
+    }
+    .badge { color: var(--text-soft); font-size: 11px; text-align: center; white-space: nowrap; }
+    .empty { color: var(--text-soft); font-size: 13px; line-height: 1.7; }
+    /* ── PREVIEW ── */
+    .preview { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    pre {
+      margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 100px;
+      background: rgba(0,0,0,.22); border-top: 1px solid var(--border); padding: 14px;
+      color: var(--text-soft); font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    /* ── BOTTOM ACTIONS ── */
+    .bottom-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-soft); align-items: flex-start; }
+    .action-group {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding-right: 12px; border-right: 1px solid var(--border-soft);
+    }
+    .action-group:last-child { border-right: 0; padding-right: 0; }
+    .action-group-label {
+      width: 100%;
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    /* ── SIMILAR CARD ── */
+    .similar-card .card-head { flex-wrap: wrap; gap: 10px; }
+    .similar-card .card-controls { min-width: 260px; }
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+    /* ── RANGE ── */
+    input[type="range"] { accent-color: var(--accent); vertical-align: middle; }
+    .strength-control { display: inline-flex; align-items: center; gap: 6px; }
+    .strength-control input[type="range"] { width: 100px; }
+    /* ── HELP ── */
+    .help {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 1px solid var(--border); color: var(--text-soft);
+      font-size: 10px; font-weight: 700; cursor: help;
+    }
+    .floating-tooltip {
+      position: fixed; z-index: 50; display: none;
+      width: min(300px, calc(100vw - 24px));
+      padding: 10px 12px; border-radius: 10px;
+      background: var(--surface); color: var(--text); border: 1px solid var(--border);
+      box-shadow: var(--shadow); font-size: 12px; line-height: 1.6;
+    }
+    .floating-tooltip.show { display: block; }
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; left: 50%; top: 50%;
+      transform: translate(-50%, -50%) scale(.96);
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px 28px; box-shadow: var(--shadow);
+      opacity: 0; pointer-events: none;
+      transition: opacity .18s, transform .18s; font-size: 17px; font-weight: 600;
+      text-align: center; z-index: 40;
+      max-width: min(420px, calc(100vw - 40px));
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+    .toast-actions { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+    .toast-actions button { font-size: 14px; }
+    /* ── MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.6); padding: 20px; z-index: 20;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      width: min(440px, 100%); background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    .modal-body { padding: 20px; line-height: 1.7; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); }
+    /* ── THEME BUTTON ── */
+    #themeBtn { background: transparent; border: 1px solid var(--border); padding: 7px 10px; font-size: 16px; }
+    /* ── LIGHT THEME ── */
+    body[data-theme="light"] {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface2: #e2e8f0;
+      --surface3: #cbd5e1;
+      --text: #0f172a;
+      --text-soft: #64748b;
+      --border: rgba(15,23,42,.1);
+      --border-soft: rgba(15,23,42,.06);
+    }
+    body[data-theme="light"] textarea { background: rgba(0,0,0,.03); }
+    body[data-theme="light"] textarea:focus { background: rgba(0,0,0,.06); }
+    body[data-theme="light"] pre { color: #334155; background: rgba(0,0,0,.04); }
+    body[data-theme="light"] h1 { color: #FD6BB6; }
+    body[data-theme="light"] .chip.aonly:not(.selected):not(.duplicate-remove) {
+      background: rgba(2,132,199,.12);
+      border-color: rgba(2,132,199,.35);
+      color: #0369a1;
+    }
+    body[data-theme="light"] .chip.bonly:not(.selected):not(.duplicate-remove) {
+      background: rgba(217,119,6,.14);
+      border-color: rgba(217,119,6,.38);
+      color: #92400e;
+    }
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .grid, .results, .preview { grid-template-columns: 1fr; }
+      .bottom-actions button { flex: 1 1 auto; }
+      .similar-card .card-controls { min-width: 0; width: 100%; }
+      textarea { min-height: 200px; }
+      header { padding: 24px 16px 14px; }
+      main { padding: 0 16px 40px; }
+    }
+    @media (max-width: 540px) {
+      .results { grid-template-columns: 1fr; }
+      .action-buttons { justify-content: flex-end; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>PuniQ Prompt Diff <span class="app-version">ver.1.0.0</span></h1>
+      <div class="subtitle">2つのプロンプトを比較して、共通・差分・類似タグを整理するツール</div>
+    </div>
+    <button id="themeBtn" title="テーマ切替">🌙</button>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="card">
+        <div class="card-head"><span class="card-title">Prompt A</span></div>
+        <textarea id="promptA" placeholder="例: 1girl, glasses, smile, blue eyes, (detailed eyes:1.2)"></textarea>
+      </section>
+      <section class="card">
+        <div class="card-head"><span class="card-title">Prompt B</span></div>
+        <textarea id="promptB" placeholder="例: 1girl, black-rim glasses, smiling, glowing blue eyes"></textarea>
+      </section>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-primary" id="compareBtn">比較する</button>
+      <button class="btn-ghost" id="clearBtn">クリア</button>
+      <span class="toolbar-divider"></span>
+      <button class="btn-ghost" id="saveSetBtn">💾 保存</button>
+      <button class="btn-ghost" id="loadSetBtn">📂 呼び出し <span class="counter" id="savedCount"></span></button>
+    </div>
+
+    <div class="results">
+      <section class="card">
+        <div class="card-head">
+          <div class="card-head-main"><span class="card-title">共通 <span class="counter" id="commonCount">(0)</span></span></div>
+          <div class="card-actions">
+            <button class="btn-sm" data-select-all="common">全選択</button>
+            <button class="btn-sm" data-clear-group="common">解除</button>
+            <button class="btn-sm" data-copy="common">コピー</button>
+          </div>
+        </div>
+        <div class="section-body"><div class="chips" id="commonChips"></div></div>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <div class="card-head-main"><span class="card-title">A のみ <span class="counter" id="aOnlyCount">(0)</span></span></div>
+          <div class="card-actions">
+            <button class="btn-sm" data-select-all="aOnly">全選択</button>
+            <button class="btn-sm" data-clear-group="aOnly">解除</button>
+            <button class="btn-sm" data-copy="aOnly">コピー</button>
+          </div>
+        </div>
+        <div class="section-body"><div class="chips" id="aOnlyChips"></div></div>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <div class="card-head-main"><span class="card-title">B のみ <span class="counter" id="bOnlyCount">(0)</span></span></div>
+          <div class="card-actions">
+            <button class="btn-sm" data-select-all="bOnly">全選択</button>
+            <button class="btn-sm" data-clear-group="bOnly">解除</button>
+            <button class="btn-sm" data-copy="bOnly">コピー</button>
+          </div>
+        </div>
+        <div class="section-body"><div class="chips" id="bOnlyChips"></div></div>
+      </section>
+    </div>
+
+    <section class="card similar-card" style="margin-top:12px;">
+      <div class="card-head">
+        <div class="card-head-main"><span class="card-title">類似候補 <span class="counter" id="similarCount">(0)</span></span></div>
+        <div class="card-actions" style="flex:1;flex-wrap:wrap;gap:8px;">
+          <div class="card-controls">
+            <label><input type="checkbox" id="similarEnabled" checked> 類似候補を表示 <span class="help" tabindex="0" data-tip="Aのみ・Bのみに分かれたタグ同士を比べて、似ている可能性がある組み合わせを表示します。自動削除はしません。">?</span></label>
+            <label><input type="checkbox" id="spellMode" checked> 誤字チェック <span class="help" tabindex="0" data-tip="スペルミスや表記ゆれを探します。例: glasses と glassess、smile と smilie。">?</span></label>
+            <label><input type="checkbox" id="meaningMode" checked> 構造チェック <span class="help" tabindex="0" data-tip="単語の含み方や共通語を見ます。例: huge breasts と medium breasts は breasts が共通なので候補に出ます。">?</span></label>
+            <span class="strength-control">強さ <input type="range" id="similaritySlider" min="1" max="5" step="1" value="2"><span id="similarityVal">2</span><span class="help" tabindex="0" data-tip="1はゆるめで候補が多く、5は厳しめで候補が少なくなります。まずは2〜3がおすすめです。">?</span></span>
+          </div>
+          <div class="action-buttons">
+            <button class="btn-sm" data-select-all="similar">全選択</button>
+            <button class="btn-sm" data-clear-group="similar">解除</button>
+            <button class="btn-sm" data-copy="similar">コピー</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-body"><div class="similar-list" id="similarList"></div></div>
+    </section>
+
+    <section class="card collapsible" id="duplicateASection" style="margin-top:12px;">
+      <button class="card-head accordion-toggle" type="button" data-accordion="duplicateASection" aria-expanded="false">
+        <div class="card-head-main"><span class="accordion-arrow">▶</span> <span class="card-title">A内重複 <span class="counter" id="duplicateACount">(0)</span></span> <span class="help" tabindex="0" data-tip="Prompt Aの中で同じタグとして扱われるものを表示します。削除したいチップを選んでから削除できます。">?</span></div>
+      </button>
+      <div class="section-body accordion-body"><div class="duplicate-list" id="duplicateAList"></div></div>
+    </section>
+
+    <section class="card collapsible" id="duplicateBSection" style="margin-top:12px;">
+      <button class="card-head accordion-toggle" type="button" data-accordion="duplicateBSection" aria-expanded="false">
+        <div class="card-head-main"><span class="accordion-arrow">▶</span> <span class="card-title">B内重複 <span class="counter" id="duplicateBCount">(0)</span></span> <span class="help" tabindex="0" data-tip="Prompt Bの中で同じタグとして扱われるものを表示します。削除したいチップを選んでから削除できます。">?</span></div>
+      </button>
+      <div class="section-body accordion-body"><div class="duplicate-list" id="duplicateBList"></div></div>
+    </section>
+
+    <section class="card collapsible" id="weightSection" style="margin-top:12px;">
+      <button class="card-head accordion-toggle" type="button" data-accordion="weightSection" aria-expanded="false">
+        <div class="card-head-main"><span class="accordion-arrow">▶</span> <span class="card-title">ウェイト違い <span class="counter" id="weightCount">(0)</span></span> <span class="help" tabindex="0" data-tip="同じタグ名でもA/Bでウェイト値（例: :1.2）が違うものを表示します。タグ自体は共通タグにも含まれます。">?</span></div>
+      </button>
+      <div class="section-body accordion-body"><div class="similar-list" id="weightList"></div></div>
+    </section>
+
+    <div class="preview">
+      <section class="card">
+        <div class="card-head"><span class="card-title">削除後プレビュー A</span><button class="btn-sm" data-copy="previewA">コピー</button></div>
+        <pre id="previewA"></pre>
+      </section>
+      <section class="card">
+        <div class="card-head"><span class="card-title">削除後プレビュー B</span><button class="btn-sm" data-copy="previewB">コピー</button></div>
+        <pre id="previewB"></pre>
+      </section>
+    </div>
+
+    <div class="bottom-actions">
+      <div class="action-group">
+        <div class="action-group-label">全体操作</div>
+        <button class="btn-ghost" id="clearSelectionBtn">全選択解除</button>
+      </div>
+      <div class="action-group">
+        <div class="action-group-label">比較タグ操作</div>
+        <button class="btn-danger" id="deleteSelectedBtn">選択タグを削除</button>
+        <button class="btn-danger" id="deleteAllCommonBtn">共通タグを一括削除</button>
+      </div>
+      <div class="action-group">
+        <div class="action-group-label">重複タグ操作</div>
+        <button class="btn-danger" id="deleteDuplicateABtn">Aの重複選択を削除</button>
+        <button class="btn-danger" id="deleteDuplicateBBtn">Bの重複選択を削除</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-body">
+        <div class="modal-title" id="confirmTitle">削除しますか？</div>
+        <div id="confirmMessage">選択したタグを削除します。</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="cancelDeleteBtn">キャンセル</button>
+        <button class="btn-danger" id="confirmDeleteBtn">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="saveSetModal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-body">
+        <div class="modal-title">セットを保存</div>
+        <div style="margin-bottom:10px; color:var(--text-soft); font-size:13px;">この比較セットに名前をつけて保存します。</div>
+        <input type="text" id="saveSetNameInput" placeholder="例: 春コスチューム比較" maxlength="60"
+          style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,.25); color:var(--text); font-size:14px;">
+        <div id="saveSetWarning" style="display:none; margin-top:10px; color:var(--warn); font-size:12px;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="cancelSaveSetBtn">キャンセル</button>
+        <button class="btn-primary" id="confirmSaveSetBtn">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="loadSetModal" role="dialog" aria-modal="true">
+    <div class="modal" style="width:min(560px,100%);">
+      <div class="modal-body">
+        <div class="modal-title">保存したセットを呼び出し</div>
+        <div id="savedSetList" style="display:grid; gap:8px; max-height:50vh; overflow-y:auto;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="closeLoadSetBtn">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <div id="toastMessage">コピーしました ✓</div>
+    <div class="toast-actions" id="toastActions" style="display:none;"></div>
+  </div>
+  <div class="floating-tooltip" id="floatingTooltip" role="tooltip"></div>
+
+<script>
+(function() {
+'use strict';
+// ── ユーティリティ ──
+const $ = (id) => document.getElementById(id);
+
+// ── 状態 ──
+let state = { rawA: [], rawB: [], a: [], b: [], common: [], aOnly: [], bOnly: [], similar: [], weightChanged: [], weightDeletesA: new Set(), weightDeletesB: new Set(), duplicatesA: [], duplicatesB: [], duplicateDeletesA: new Map(), duplicateDeletesB: new Map(), canCompareBoth: false, selected: new Set() };
+let hasCompared = false;
+let undoStack = [];
+let redoStack = [];
+let pendingDeleteAction = null;
+let similarityLevel = 2;
+let debounceTimer = null;
+
+// ── 保存セット機能 ──
+const SAVED_SETS_KEY = 'puniq_prompt_diff_saved_sets';
+const SAVED_SETS_LIMIT = 20;
+
+function loadSavedSets() {
+  try {
+    const raw = localStorage.getItem(SAVED_SETS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedSets(sets) {
+  try {
+    localStorage.setItem(SAVED_SETS_KEY, JSON.stringify(sets));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function updateSavedCountBadge() {
+  const sets = loadSavedSets();
+  $('savedCount').textContent = sets.length ? `(${sets.length})` : '';
+}
+
+function openSaveSetModal() {
+  $('saveSetNameInput').value = '';
+  $('saveSetWarning').style.display = 'none';
+  $('saveSetModal').classList.add('show');
+  setTimeout(() => $('saveSetNameInput').focus(), 50);
+}
+function closeSaveSetModal() { $('saveSetModal').classList.remove('show'); }
+
+function confirmSaveSet() {
+  const name = $('saveSetNameInput').value.trim();
+  if (!name) {
+    $('saveSetWarning').textContent = '名前を入力してください';
+    $('saveSetWarning').style.display = 'block';
+    return;
+  }
+  const sets = loadSavedSets();
+  if (sets.length >= SAVED_SETS_LIMIT) {
+    $('saveSetWarning').textContent = `保存できるのは${SAVED_SETS_LIMIT}件までです。呼び出し画面から不要なセットを削除してください。`;
+    $('saveSetWarning').style.display = 'block';
+    return;
+  }
+  const entry = {
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    promptA: $('promptA').value,
+    promptB: $('promptB').value,
+    createdAt: new Date().toISOString(),
+  };
+  sets.push(entry);
+  const ok = persistSavedSets(sets);
+  if (!ok) {
+    $('saveSetWarning').textContent = '保存に失敗しました（ブラウザのストレージ容量が原因の可能性があります）';
+    $('saveSetWarning').style.display = 'block';
+    return;
+  }
+  closeSaveSetModal();
+  updateSavedCountBadge();
+  showToast('セットを保存しました ✓');
+}
+
+function formatSavedDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+function openLoadSetModal() {
+  renderSavedSetList();
+  $('loadSetModal').classList.add('show');
+}
+function closeLoadSetModal() { $('loadSetModal').classList.remove('show'); }
+
+function renderSavedSetList() {
+  const el = $('savedSetList');
+  const sets = loadSavedSets();
+  el.innerHTML = '';
+  if (!sets.length) {
+    el.innerHTML = '<div class="empty">保存されたセットはまだありません</div>';
+    return;
+  }
+  // 新しいものを上に
+  [...sets].reverse().forEach(set => {
+    const row = document.createElement('div');
+    row.className = 'saved-set-item';
+
+    const info = document.createElement('div');
+    info.className = 'saved-set-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'saved-set-name';
+    nameEl.textContent = set.name;
+    const metaEl = document.createElement('div');
+    metaEl.className = 'saved-set-meta';
+    metaEl.textContent = formatSavedDate(set.createdAt);
+    info.append(nameEl, metaEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'saved-set-actions';
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'btn-sm btn-primary';
+    loadBtn.textContent = '呼び出す';
+    loadBtn.addEventListener('click', () => applySavedSet(set.id));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-sm btn-danger';
+    delBtn.textContent = '削除';
+    delBtn.addEventListener('click', () => deleteSavedSet(set.id));
+    actions.append(loadBtn, delBtn);
+
+    row.append(info, actions);
+    el.appendChild(row);
+  });
+}
+
+function applySavedSet(id) {
+  const sets = loadSavedSets();
+  const target = sets.find(s => s.id === id);
+  if (!target) return;
+  $('promptA').value = target.promptA;
+  $('promptB').value = target.promptB;
+  state.weightDeletesA.clear();
+  state.weightDeletesB.clear();
+  state.duplicateDeletesA.clear();
+  state.duplicateDeletesB.clear();
+  closeLoadSetModal();
+  runCompare();
+  showToast(`「${target.name}」を呼び出しました`);
+}
+
+function deleteSavedSet(id) {
+  const sets = loadSavedSets();
+  const target = sets.find(s => s.id === id);
+  if (!target) return;
+  showConfirmToast(`「${target.name}」を削除しますか？`, () => {
+    const next = sets.filter(s => s.id !== id);
+    persistSavedSets(next);
+    updateSavedCountBadge();
+    renderSavedSetList();
+  });
+}
+
+// ── 選択履歴 ──
+function snapshotSelected() { return [...state.selected]; }
+function pushSelectionHistory() {
+  undoStack.push(snapshotSelected());
+  if (undoStack.length > 80) undoStack.shift();
+  redoStack = [];
+}
+function selectKey(key) {
+  pushSelectionHistory();
+  if (state.selected.has(key)) state.selected.delete(key);
+  else state.selected.add(key);
+  render();
+}
+function selectItems(items) { pushSelectionHistory(); items.forEach(x => state.selected.add(x.key)); render(); }
+function clearItems(items) { pushSelectionHistory(); items.forEach(x => state.selected.delete(x.key)); render(); }
+function clearSelection() {
+  pushSelectionHistory();
+  state.selected.clear();
+  state.weightDeletesA.clear();
+  state.weightDeletesB.clear();
+  state.duplicateDeletesA.clear();
+  state.duplicateDeletesB.clear();
+  render();
+}
+function undo() { if (!undoStack.length) return; redoStack.push(snapshotSelected()); state.selected = new Set(undoStack.pop()); render(); }
+function redo() { if (!redoStack.length) return; undoStack.push(snapshotSelected()); state.selected = new Set(redoStack.pop()); render(); }
+
+// ── パース ──
+function splitPrompt(text) {
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (const ch of text) {
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    if (ch === ')' || ch === ']' || ch === '}') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0) { pushCurrent(); } else { current += ch; }
+  }
+  pushCurrent();
+  function pushCurrent() {
+    const raw = current.trim();
+    if (raw) result.push({ raw, key: normalizeTag(raw) });
+    current = '';
+  }
+  return result;
+}
+
+function normalizeTag(tag) {
+  let t = stripOuterWrappers(tag.trim().toLowerCase());
+  t = t.replace(/:[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s*$/g, '');
+  t = t.replace(/_/g, ' ');
+  t = t.replace(/\s+/g, ' ');
+  return t.trim();
+}
+
+function stripOuterWrappers(value) {
+  let t = value.trim();
+  let changed = true;
+  while (changed && t.length >= 2) {
+    changed = false;
+    const pairs = { '(': ')', '[': ']', '{': '}' };
+    const close = pairs[t[0]];
+    if (close && t[t.length - 1] === close && wrapsWholeTag(t)) {
+      t = t.slice(1, -1).trim();
+      changed = true;
+    }
+  }
+  return t;
+}
+
+function wrapsWholeTag(value) {
+  let depth = 0;
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    if (ch === ')' || ch === ']' || ch === '}') depth--;
+    if (depth === 0 && i < value.length - 1) return false;
+  }
+  return depth === 0;
+}
+
+// raw文字列からウェイト値を抽出（例: "(detailed eyes:1.2)" → 1.2 / 括弧がない場合はウェイト指定とみなさない）
+function extractWeight(raw) {
+  const trimmed = raw.trim();
+  // 括弧(各種)で囲まれていない場合は誤検出防止のためウェイトなしとする
+  // 例: "ratio:16:9" のような通常タグの末尾コロンを誤ってウェイトと認識しないようにする
+  if (!/^[(\[{]/.test(trimmed)) return null;
+  const inner = stripOuterWrappers(trimmed);
+  const m = inner.match(/:([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*$/);
+  if (!m) return null;
+  return parseFloat(m[1]);
+}
+
+function comparableWeight(raw) {
+  return extractWeight(raw) ?? 1;
+}
+
+function uniqueByKey(items) {
+  const map = new Map();
+  items.forEach(item => { if (!map.has(item.key)) map.set(item.key, item); });
+  return [...map.values()];
+}
+
+function findDuplicates(items) {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    if (!groups.has(item.key)) groups.set(item.key, []);
+    groups.get(item.key).push({ ...item, index });
+  });
+  return [...groups.entries()]
+    .filter(([, group]) => group.length > 1)
+    .map(([key, items]) => {
+      const weights = new Set(items.map(item => comparableWeight(item.raw)));
+      return { key, items, hasWeightVariants: weights.size > 1 };
+    });
+}
+
+function syncDuplicateDeletes(groups, selections) {
+  const next = new Map();
+  groups.forEach(group => {
+    const current = selections.get(group.key) || new Set();
+    const validIndexes = new Set(group.items.map(item => item.index));
+    const selected = new Set([...current].filter(index => validIndexes.has(index)));
+    if (selected.size) next.set(group.key, selected);
+  });
+  return next;
+}
+
+function syncWeightDeletes(weightChanged, selections) {
+  const validKeys = new Set(weightChanged.map(item => item.key));
+  return new Set([...selections].filter(key => validKeys.has(key)));
+}
+
+// ── 類似度計算 ──
+function levenshtein(a, b) {
+  // 早期リターン最適化
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  // 長さ差が大きい場合は類似しない可能性が高いので計算をスキップ
+  const lenDiff = Math.abs(a.length - b.length);
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(
+        dp[i-1][j] + 1,
+        dp[i][j-1] + 1,
+        dp[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1)
+      );
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+function tokenOverlap(a, b) {
+  const as = new Set(a.split(' ').filter(Boolean));
+  const bs = new Set(b.split(' ').filter(Boolean));
+  const inter = [...as].filter(x => bs.has(x)).length;
+  const union = new Set([...as, ...bs]).size || 1;
+  return inter / union;
+}
+
+function thresholdFromLevel(level) {
+  return ({ 1: 0.50, 2: 0.60, 3: 0.70, 4: 0.80, 5: 0.90 })[level] || 0.60;
+}
+
+function getSimilarityModes() {
+  return {
+    spell: $('spellMode')?.checked ?? true,
+    meaning: $('meaningMode')?.checked ?? true,
+  };
+}
+
+function similarityScore(a, b, modes) {
+  if (!a || !b) return { score: 0, reason: '' };
+
+  const edit = 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+  const contain = (a.includes(b) || b.includes(a)) ? 0.82 : 0;
+  const overlap = tokenOverlap(a, b);
+  const at = a.split(' ').filter(Boolean);
+  const bt = b.split(' ').filter(Boolean);
+  const shared = at.filter(x => bt.includes(x));
+  const sharedCore = shared.length ? 0.67 : 0;
+
+  const candidates = [];
+  if (modes.spell) candidates.push({ score: edit, reason: '誤字' });
+  if (modes.meaning) {
+    candidates.push({ score: contain, reason: '包含' });
+    candidates.push({ score: overlap, reason: '単語一致' });
+    candidates.push({ score: sharedCore, reason: shared.length ? `共通語: ${shared.join(' / ')}` : '構造' });
+  }
+  return candidates.reduce((best, cur) => cur.score > best.score ? cur : best, { score: 0, reason: '' });
+}
+
+function findSimilar(aOnly, bOnly, threshold, modes) {
+  const pairs = [];
+  if (!modes.spell && !modes.meaning) return pairs;
+  // O(n²) だが早期 score 判定で内側ループを最適化
+  for (const a of aOnly) {
+    for (const b of bOnly) {
+      // 長さ差が大きければ levenshtein はスキップ（包含・overlap だけ試す）
+      const lenRatio = Math.min(a.key.length, b.key.length) / Math.max(a.key.length, b.key.length || 1);
+      if (modes.spell && lenRatio < 0.4) {
+        // spell モードをスキップして meaning だけ
+        const modifiedModes = { spell: false, meaning: modes.meaning };
+        const result = similarityScore(a.key, b.key, modifiedModes);
+        if (result.score >= threshold) pairs.push({ a, b, score: result.score, reason: result.reason });
+      } else {
+        const result = similarityScore(a.key, b.key, modes);
+        if (result.score >= threshold) pairs.push({ a, b, score: result.score, reason: result.reason });
+      }
+    }
+  }
+  return pairs.sort((x, y) => y.score - x.score).slice(0, 80);
+}
+
+// ── 比較メイン ──
+function compare() {
+  if (!hasCompared) { render(); return; }
+  const rawA = splitPrompt($('promptA').value);
+  const rawB = splitPrompt($('promptB').value);
+  const canCompareBoth = rawA.length > 0 && rawB.length > 0;
+  const a = uniqueByKey(rawA);
+  const b = uniqueByKey(rawB);
+  const aKeys = new Set(a.map(x => x.key));
+  const bKeys = new Set(b.map(x => x.key));
+  const bMap = new Map(b.map(x => [x.key, x]));
+  const matched = canCompareBoth ? a.filter(x => bKeys.has(x.key)) : [];
+  const weightChanged = matched
+    .map(aItem => {
+      const bItem = bMap.get(aItem.key);
+      const wa = comparableWeight(aItem.raw);
+      const wb = comparableWeight(bItem.raw);
+      if (wa === wb) return null;
+      return { key: aItem.key, a: aItem, b: bItem, weightA: wa, weightB: wb };
+    })
+    .filter(Boolean);
+  const weightChangedKeys = new Set(weightChanged.map(item => item.key));
+  const common = matched.filter(item => !weightChangedKeys.has(item.key));
+  const aOnly = canCompareBoth ? a.filter(x => !bKeys.has(x.key)) : [];
+  const bOnly = canCompareBoth ? b.filter(x => !aKeys.has(x.key)) : [];
+  const similar = canCompareBoth && $('similarEnabled').checked ? findSimilar(aOnly, bOnly, thresholdFromLevel(similarityLevel), getSimilarityModes()) : [];
+  const duplicatesA = findDuplicates(rawA);
+  const duplicatesB = findDuplicates(rawB);
+  const weightDeletesA = syncWeightDeletes(weightChanged, state.weightDeletesA);
+  const weightDeletesB = syncWeightDeletes(weightChanged, state.weightDeletesB);
+  const duplicateDeletesA = syncDuplicateDeletes(duplicatesA, state.duplicateDeletesA);
+  const duplicateDeletesB = syncDuplicateDeletes(duplicatesB, state.duplicateDeletesB);
+
+  state = { ...state, rawA, rawB, a, b, common, aOnly, bOnly, similar, weightChanged, weightDeletesA, weightDeletesB, duplicatesA, duplicatesB, duplicateDeletesA, duplicateDeletesB, canCompareBoth };
+  render();
+}
+
+function runCompare() {
+  hasCompared = true;
+  compare();
+}
+
+function clearTransientSelections() {
+  state.selected.clear();
+  state.weightDeletesA.clear();
+  state.weightDeletesB.clear();
+  state.duplicateDeletesA.clear();
+  state.duplicateDeletesB.clear();
+}
+
+function scheduleCompare({ clearSelections = false } = {}) {
+  if (clearSelections) clearTransientSelections();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(runCompare, 300);
+}
+
+// ── 削除 ──
+function deleteSelected() {
+  if (!state.canCompareBoth) return;
+  $('promptA').value = buildPreviewForSide('A');
+  $('promptB').value = buildPreviewForSide('B');
+  state.selected.clear();
+  state.weightDeletesA.clear();
+  state.weightDeletesB.clear();
+  compare();
+}
+
+function deleteAllCommon() {
+  if (!state.canCompareBoth) return;
+  // FIX: pushSelectionHistory を先に呼んでから selected を変更する
+  pushSelectionHistory();
+  state.common.forEach(x => state.selected.add(x.key));
+  // selected を確定させてから削除処理へ（deleteSelected は selected.clear() するので直接実行）
+  $('promptA').value = buildPreviewForSide('A');
+  $('promptB').value = buildPreviewForSide('B');
+  state.selected.clear();
+  state.weightDeletesA.clear();
+  state.weightDeletesB.clear();
+  compare();
+}
+
+function deleteDuplicatesForSide(side) {
+  const isA = side === 'A';
+  const duplicates = isA ? state.duplicatesA : state.duplicatesB;
+  const selections = isA ? state.duplicateDeletesA : state.duplicateDeletesB;
+  const promptId = isA ? 'promptA' : 'promptB';
+  if (!duplicates.length) {
+    showToast(`Prompt ${side}内の重複はありません`);
+    return;
+  }
+  const removeIndexes = new Set();
+  duplicates.forEach(group => {
+    const selected = selections.get(group.key) || new Set();
+    selected.forEach(index => removeIndexes.add(index));
+  });
+  if (!removeIndexes.size) {
+    showToast(`Prompt ${side}内重複で削除するタグを選んでください`);
+    return;
+  }
+  const deleteAllGroups = duplicates.filter(group => group.items.every(item => removeIndexes.has(item.index)));
+  if (deleteAllGroups.length) {
+    showToast('各重複グループで最低1つは残してください');
+    return;
+  }
+  const nextPrompt = splitPrompt($(promptId).value)
+    .filter((_, index) => !removeIndexes.has(index))
+    .map(item => item.raw)
+    .join(', ');
+  $(promptId).value = nextPrompt;
+  selections.clear();
+  runCompare();
+  showToast(`Prompt ${side}から${removeIndexes.size}件の重複タグを削除しました`);
+}
+
+function deleteDuplicateA() { deleteDuplicatesForSide('A'); }
+function deleteDuplicateB() { deleteDuplicatesForSide('B'); }
+
+function selectedDuplicateIndexes(side) {
+  const selections = side === 'A' ? state.duplicateDeletesA : state.duplicateDeletesB;
+  const indexes = new Set();
+  selections.forEach(selected => selected.forEach(index => indexes.add(index)));
+  return indexes;
+}
+
+function selectedWeightKeys(side) {
+  return side === 'A' ? state.weightDeletesA : state.weightDeletesB;
+}
+
+function buildPreviewForSide(side) {
+  const items = side === 'A' ? state.rawA : state.rawB;
+  const duplicateIndexes = selectedDuplicateIndexes(side);
+  const weightKeys = selectedWeightKeys(side);
+  return items
+    .filter((item, index) => !duplicateIndexes.has(index) && !weightKeys.has(item.key) && !(state.canCompareBoth && state.selected.has(item.key)))
+    .map(item => item.raw)
+    .join(', ');
+}
+
+function updatePreviews() {
+  $('previewA').textContent = hasCompared ? buildPreviewForSide('A') : $('promptA').value.trim();
+  $('previewB').textContent = hasCompared ? buildPreviewForSide('B') : $('promptB').value.trim();
+}
+
+// ── モーダル ──
+function openConfirm(title, message, action) {
+  pendingDeleteAction = action;
+  $('confirmTitle').textContent = title;
+  $('confirmMessage').textContent = message;
+  $('confirmModal').classList.add('show');
+}
+function closeConfirm() { $('confirmModal').classList.remove('show'); pendingDeleteAction = null; }
+
+// ── グループ取得 ──
+function itemsForGroup(group) {
+  if (group === 'similar') {
+    const map = new Map();
+    state.similar.forEach(p => { map.set(p.a.key, p.a); map.set(p.b.key, p.b); });
+    return [...map.values()];
+  }
+  return state[group] || [];
+}
+
+// ── コピー ──
+function copyText(kind) {
+  const map = {
+    common: state.common.map(x => x.raw).join(', '),
+    aOnly: state.aOnly.map(x => x.raw).join(', '),
+    bOnly: state.bOnly.map(x => x.raw).join(', '),
+    similar: state.similar.map(x => `${x.a.raw}  ↔  ${x.b.raw} (${reasonLabel(x.reason)} / 強さ${levelFromScore(x.score)})`).join('\n'),
+    previewA: $('previewA').textContent,
+    previewB: $('previewB').textContent,
+  };
+  const text = map[kind] || '';
+  if (!text) { showToast('コピーする内容がありません'); return; }
+
+  function fallbackCopy() {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(ok ? 'コピーしました ✓' : 'コピーに失敗しました');
+    } catch {
+      showToast('コピーに失敗しました');
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('コピーしました ✓'))
+      .catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+}
+
+// ── ラベル ──
+function levelFromScore(score) {
+  if (score >= 0.9) return 5;
+  if (score >= 0.8) return 4;
+  if (score >= 0.7) return 3;
+  if (score >= 0.6) return 2;
+  return 1;
+}
+function reasonLabel(reason) {
+  if (reason === '誤字') return '誤字っぽい';
+  if (reason === '包含') return '含む関係';
+  if (reason === '単語一致') return '単語かぶり';
+  if (reason.startsWith('共通語:')) return reason;
+  if (reason === '構造') return '構造が近い';
+  return reason;
+}
+function reasonTip(reason) {
+  if (reason === '誤字') return '文字の並びがかなり近い候補です。';
+  if (reason === '包含') return '片方のタグがもう片方に含まれている候補です。例: glasses と round glasses。';
+  if (reason === '単語一致') return 'タグ内で同じ単語が含まれている候補です。';
+  if (reason.startsWith('共通語:')) return '同じ中心語を持つ候補です。例: huge breasts と medium breasts は breasts が共通です。';
+  if (reason === '構造') return 'タグの構造が近い候補です。';
+  return '類似候補の判定理由です。';
+}
+
+// ── レンダリング ──
+function renderChips(id, items, cls) {
+  const el = $(id);
+  el.innerHTML = '';
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">該当なし</div>';
+    return;
+  }
+  items.forEach(item => {
+    const chip = document.createElement('button');
+    chip.className = `chip ${cls} ${state.selected.has(item.key) ? 'selected' : ''}`;
+    chip.textContent = item.raw;
+    chip.dataset.key = item.key;
+    chip.title = 'クリックで削除候補にマーク';
+    chip.addEventListener('click', () => selectKey(item.key));
+    el.appendChild(chip);
+  });
+}
+
+function renderSimilar() {
+  const el = $('similarList');
+  el.innerHTML = '';
+  if (!state.similar.length) {
+    el.innerHTML = '<div class="empty">類似候補なし。強さを1寄りにするか、誤字/構造チェックをONにすると候補が増えます。</div>';
+    return;
+  }
+  state.similar.forEach(pair => {
+    const pairKey = `${pair.a.key}||${pair.b.key}`;
+    const row = document.createElement('div');
+    row.className = 'similar-item';
+    row.dataset.pairKey = pairKey;
+    const left = document.createElement('button');
+    left.className = `chip aonly ${state.selected.has(pair.a.key) ? 'selected' : ''}`;
+    left.textContent = pair.a.raw;
+    left.dataset.key = pair.a.key;
+    left.dataset.pairKey = pairKey;
+    left.addEventListener('click', () => selectKey(pair.a.key));
+    const mid = document.createElement('span');
+    mid.className = 'badge';
+    mid.textContent = `${reasonLabel(pair.reason)} / 強さ${levelFromScore(pair.score)}`;
+    mid.title = reasonTip(pair.reason);
+    const right = document.createElement('button');
+    right.className = `chip bonly ${state.selected.has(pair.b.key) ? 'selected' : ''}`;
+    right.textContent = pair.b.raw;
+    right.dataset.key = pair.b.key;
+    right.dataset.pairKey = pairKey;
+    right.addEventListener('click', () => selectKey(pair.b.key));
+    row.append(left, mid, right);
+    el.appendChild(row);
+  });
+}
+
+function toggleDuplicateDelete(side, key, index) {
+  const selections = side === 'A' ? state.duplicateDeletesA : state.duplicateDeletesB;
+  const selected = new Set(selections.get(key) || []);
+  if (selected.has(index)) selected.delete(index);
+  else selected.add(index);
+  if (selected.size) selections.set(key, selected);
+  else selections.delete(key);
+  render();
+}
+
+function toggleDuplicateGroupDelete(side, group) {
+  const selections = side === 'A' ? state.duplicateDeletesA : state.duplicateDeletesB;
+  const selected = selections.has(group.key) ? new Set() : new Set(group.items.slice(1).map(item => item.index));
+  if (selected.size) selections.set(group.key, selected);
+  else selections.delete(group.key);
+  render();
+}
+
+function renderDuplicates(side) {
+  const isA = side === 'A';
+  const el = $(isA ? 'duplicateAList' : 'duplicateBList');
+  const groups = isA ? state.duplicatesA : state.duplicatesB;
+  const selections = isA ? state.duplicateDeletesA : state.duplicateDeletesB;
+  const chipClass = isA ? 'aonly' : 'bonly';
+  el.innerHTML = '';
+  if (!groups.length) {
+    el.innerHTML = `<div class="empty">Prompt ${side}内の重複はありません</div>`;
+    return;
+  }
+  groups.forEach(group => {
+    const row = document.createElement('div');
+    row.className = 'duplicate-group';
+
+    const head = document.createElement('div');
+    head.className = 'duplicate-group-head';
+    const count = document.createElement('span');
+    const selected = selections.get(group.key) || new Set();
+    const title = document.createElement('span');
+    title.textContent = group.hasWeightVariants ? 'ウェイト違いあり' : '同一タグ重複';
+    count.textContent = selected.size ? `${selected.size}/${group.items.length}件を削除予定` : `${group.items.length}件 / 削除するタグを選択`;
+    head.append(title, count);
+
+    const options = document.createElement('div');
+    options.className = 'duplicate-options';
+    if (!group.hasWeightVariants) {
+      const label = document.createElement('label');
+      label.className = 'duplicate-choice';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = selected.size > 0;
+      checkbox.addEventListener('change', () => toggleDuplicateGroupDelete(side, group));
+      const chip = document.createElement('span');
+      chip.className = `chip ${chipClass} ${selected.size ? 'duplicate-remove' : ''}`;
+      chip.textContent = group.key;
+      chip.dataset.key = group.key;
+      chip.title = selected.size ? '重複分を削除します' : 'クリックで重複分を削除対象にする';
+      label.append(checkbox, chip);
+      options.appendChild(label);
+      row.append(head, options);
+      el.appendChild(row);
+      return;
+    }
+    group.items.forEach(item => {
+      const label = document.createElement('label');
+      label.className = 'duplicate-choice';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = selected.has(item.index);
+      checkbox.addEventListener('change', () => toggleDuplicateDelete(side, group.key, item.index));
+      const chip = document.createElement('span');
+      chip.className = `chip ${chipClass} ${selected.has(item.index) ? 'duplicate-remove' : ''}`;
+      chip.textContent = item.raw;
+      chip.dataset.key = item.key;
+      chip.title = selected.has(item.index) ? 'このタグを削除します' : 'クリックで削除対象にする';
+      label.append(checkbox, chip);
+      options.appendChild(label);
+    });
+
+    row.append(head, options);
+    el.appendChild(row);
+  });
+}
+
+function renderDuplicatesA() { renderDuplicates('A'); }
+function renderDuplicatesB() { renderDuplicates('B'); }
+
+function toggleWeightDelete(side, key) {
+  const selections = side === 'A' ? state.weightDeletesA : state.weightDeletesB;
+  if (selections.has(key)) selections.delete(key);
+  else selections.add(key);
+  render();
+}
+
+function renderWeightChanged() {
+  const el = $('weightList');
+  el.innerHTML = '';
+  if (!state.weightChanged.length) {
+    el.innerHTML = '<div class="empty">ウェイト違いはありません</div>';
+    return;
+  }
+  state.weightChanged.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'similar-item';
+    const left = document.createElement('button');
+    left.className = `chip common ${state.weightDeletesA.has(item.key) ? 'selected' : ''}`;
+    left.dataset.key = item.key;
+    left.textContent = item.a.raw;
+    left.title = state.weightDeletesA.has(item.key) ? 'A側を削除します' : 'クリックでA側を削除対象にする';
+    left.addEventListener('click', () => toggleWeightDelete('A', item.key));
+    const mid = document.createElement('span');
+    mid.className = 'badge';
+    const wa = item.weightA === null ? '指定なし' : item.weightA;
+    const wb = item.weightB === null ? '指定なし' : item.weightB;
+    mid.textContent = `${wa} → ${wb}`;
+    mid.title = 'A→B のウェイト変化';
+    const right = document.createElement('button');
+    right.className = `chip common ${state.weightDeletesB.has(item.key) ? 'selected' : ''}`;
+    right.dataset.key = item.key;
+    right.textContent = item.b.raw;
+    right.title = state.weightDeletesB.has(item.key) ? 'B側を削除します' : 'クリックでB側を削除対象にする';
+    right.addEventListener('click', () => toggleWeightDelete('B', item.key));
+    row.append(left, mid, right);
+    el.appendChild(row);
+  });
+}
+
+// ── ホバー連動ハイライト ──
+function attachHoverHighlight() {
+  const allChips = document.querySelectorAll('.chip[data-key]');
+  allChips.forEach(chip => {
+    chip.addEventListener('mouseenter', onChipHoverEnter);
+    chip.addEventListener('mouseleave', onChipHoverLeave);
+  });
+}
+function onChipHoverEnter(e) {
+  const key = e.currentTarget.dataset.key;
+  const pairKey = e.currentTarget.dataset.pairKey;
+  if (key) document.querySelectorAll(`.chip[data-key="${cssEscape(key)}"]`).forEach(el => el.classList.add('hover-link'));
+  if (pairKey) document.querySelectorAll(`.chip[data-pair-key="${cssEscape(pairKey)}"]`).forEach(el => el.classList.add('hover-link'));
+}
+function onChipHoverLeave(e) {
+  const key = e.currentTarget.dataset.key;
+  const pairKey = e.currentTarget.dataset.pairKey;
+  if (key) document.querySelectorAll(`.chip[data-key="${cssEscape(key)}"]`).forEach(el => el.classList.remove('hover-link'));
+  if (pairKey) document.querySelectorAll(`.chip[data-pair-key="${cssEscape(pairKey)}"]`).forEach(el => el.classList.remove('hover-link'));
+}
+function cssEscape(str) {
+  return (window.CSS && CSS.escape) ? CSS.escape(str) : str.replace(/["\\]/g, '\\$&');
+}
+
+function setBottomActionsEnabled(enabled) {
+  const deleteSelectedBtn = $('deleteSelectedBtn');
+  const canDeleteSelected = enabled && selectedDeleteCount() > 0;
+  deleteSelectedBtn.disabled = !canDeleteSelected;
+  deleteSelectedBtn.title = canDeleteSelected ? '' : '削除するタグを選んだ時だけ使えます';
+
+  const deleteAllCommonBtn = $('deleteAllCommonBtn');
+  const canDeleteCommon = enabled && state.common.length > 0;
+  deleteAllCommonBtn.disabled = !canDeleteCommon;
+  deleteAllCommonBtn.title = canDeleteCommon ? '' : '共通タグがある時だけ使えます';
+}
+
+function setClearSelectionEnabled() {
+  const hasDuplicateSelections = state.duplicateDeletesA.size > 0 || state.duplicateDeletesB.size > 0;
+  const hasWeightSelections = state.weightDeletesA.size > 0 || state.weightDeletesB.size > 0;
+  const enabled = state.selected.size > 0 || hasDuplicateSelections || hasWeightSelections;
+  const button = $('clearSelectionBtn');
+  button.disabled = !enabled;
+  button.title = enabled ? '' : '解除する選択がありません';
+}
+
+function setDuplicateActionsEnabled() {
+  const configs = [
+    ['deleteDuplicateABtn', state.duplicateDeletesA.size > 0, 'Prompt A内重複で削除するタグを選んだ時だけ使えます'],
+    ['deleteDuplicateBBtn', state.duplicateDeletesB.size > 0, 'Prompt B内重複で削除するタグを選んだ時だけ使えます'],
+  ];
+  configs.forEach(([id, enabled, disabledTitle]) => {
+    const button = $(id);
+    button.disabled = !enabled;
+    button.title = enabled ? '' : disabledTitle;
+  });
+}
+
+function selectedDeleteCount() {
+  return state.selected.size + state.weightDeletesA.size + state.weightDeletesB.size;
+}
+
+// ── アコーディオン（重複・ウェイト違いセクション） ──
+// ユーザーが手動で開閉した場合はその状態を尊重し、未操作のセクションだけ「該当件数>0」で自動的に開く
+const accordionManualState = new Map(); // id -> true(開) / false(閉) ※ユーザーが明示的に操作した場合のみ記録
+
+function setAccordionOpen(id, open) {
+  const section = $(id);
+  const toggle = section.querySelector('.accordion-toggle');
+  const body = section.querySelector('.accordion-body');
+  section.classList.toggle('is-open', open);
+  toggle.setAttribute('aria-expanded', String(open));
+  if (open) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+  } else {
+    body.style.maxHeight = '0px';
+  }
+}
+
+function syncAccordion(id, count) {
+  const manual = accordionManualState.get(id);
+  const shouldOpen = manual !== undefined ? manual : count > 0;
+  setAccordionOpen(id, shouldOpen);
+}
+
+function initAccordions() {
+  document.querySelectorAll('.accordion-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const id = toggle.dataset.accordion;
+      const isOpen = $(id).classList.contains('is-open');
+      accordionManualState.set(id, !isOpen);
+      setAccordionOpen(id, !isOpen);
+    });
+  });
+}
+
+// アコーディオン内のコンテンツが変化したときに開いているセクションの高さを再計算する
+function refreshOpenAccordionHeights() {
+  document.querySelectorAll('.collapsible.is-open').forEach(section => {
+    const body = section.querySelector('.accordion-body');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  });
+}
+
+function render() {
+  if (!hasCompared) {
+    setBottomActionsEnabled(false);
+    setClearSelectionEnabled();
+    setDuplicateActionsEnabled();
+    $('commonCount').textContent = '';
+    $('aOnlyCount').textContent  = '';
+    $('bOnlyCount').textContent  = '';
+    $('similarCount').textContent = '';
+    $('duplicateACount').textContent = '';
+    $('duplicateBCount').textContent = '';
+    $('weightCount').textContent = '';
+    const waitingMsg = '<div class="empty">「比較する」を押すと結果が表示されます</div>';
+    $('commonChips').innerHTML = waitingMsg;
+    $('aOnlyChips').innerHTML = waitingMsg;
+    $('bOnlyChips').innerHTML = waitingMsg;
+    $('similarList').innerHTML = waitingMsg;
+    $('duplicateAList').innerHTML = waitingMsg;
+    $('duplicateBList').innerHTML = waitingMsg;
+    $('weightList').innerHTML = waitingMsg;
+    syncAccordion('duplicateASection', 0);
+    syncAccordion('duplicateBSection', 0);
+    syncAccordion('weightSection', 0);
+    updatePreviews();
+    return;
+  }
+  setBottomActionsEnabled(state.canCompareBoth);
+  setClearSelectionEnabled();
+  setDuplicateActionsEnabled();
+  $('commonCount').textContent = `(${state.common.length})`;
+  $('aOnlyCount').textContent  = `(${state.aOnly.length})`;
+  $('bOnlyCount').textContent  = `(${state.bOnly.length})`;
+  $('similarCount').textContent = `(${state.similar.length})`;
+  $('duplicateACount').textContent = `(${state.duplicatesA.length})`;
+  $('duplicateBCount').textContent = `(${state.duplicatesB.length})`;
+  $('weightCount').textContent = `(${state.weightChanged.length})`;
+  renderChips('commonChips', state.common, 'common');
+  renderChips('aOnlyChips', state.aOnly, 'aonly');
+  renderChips('bOnlyChips', state.bOnly, 'bonly');
+  renderSimilar();
+  renderDuplicatesA();
+  renderDuplicatesB();
+  renderWeightChanged();
+  syncAccordion('duplicateASection', state.duplicatesA.length);
+  syncAccordion('duplicateBSection', state.duplicatesB.length);
+  syncAccordion('weightSection', state.weightChanged.length);
+  updatePreviews();
+  attachHoverHighlight();
+  refreshOpenAccordionHeights();
+}
+
+// ── トースト ──
+let toastTimer;
+function hideToast() {
+  $('toast').classList.remove('show');
+  $('toastActions').style.display = 'none';
+  $('toastActions').innerHTML = '';
+}
+function showToast(message, duration = 1600) {
+  const t = $('toast');
+  $('toastActions').style.display = 'none';
+  $('toastActions').innerHTML = '';
+  if (message) $('toastMessage').textContent = message;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, duration);
+}
+function showConfirmToast(message, onConfirm) {
+  clearTimeout(toastTimer);
+  const t = $('toast');
+  $('toastMessage').textContent = message;
+  const actions = $('toastActions');
+  actions.innerHTML = '';
+  actions.style.display = 'flex';
+
+  const noBtn = document.createElement('button');
+  noBtn.className = 'btn-ghost btn-sm';
+  noBtn.textContent = 'キャンセル';
+  noBtn.addEventListener('click', hideToast);
+
+  const yesBtn = document.createElement('button');
+  yesBtn.className = 'btn-danger btn-sm';
+  yesBtn.textContent = '実行する';
+  yesBtn.addEventListener('click', () => { hideToast(); onConfirm(); });
+
+  actions.append(noBtn, yesBtn);
+  t.classList.add('show');
+}
+
+// ── ツールチップ ──
+function clampNumber(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function showHelpTooltip(el) {
+  const tip = $('floatingTooltip');
+  if (!tip || !el) return;
+  tip.textContent = el.dataset.tip || '';
+  tip.classList.add('show');
+  const rect = el.getBoundingClientRect();
+  const margin = 12;
+  tip.style.left = '0px'; tip.style.top = '0px';
+  const tipRect = tip.getBoundingClientRect();
+  let left = rect.left + rect.width / 2 - tipRect.width / 2;
+  left = clampNumber(left, margin, window.innerWidth - tipRect.width - margin);
+  let top = rect.bottom + 8;
+  if (top + tipRect.height + margin > window.innerHeight) top = rect.top - tipRect.height - 8;
+  top = clampNumber(top, margin, window.innerHeight - tipRect.height - margin);
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+}
+function hideHelpTooltip() {
+  const tip = $('floatingTooltip');
+  if (tip) tip.classList.remove('show');
+}
+document.querySelectorAll('.help').forEach(help => {
+  ['pointerdown','mousedown','touchstart','click'].forEach(type => {
+    help.addEventListener(type, e => { e.preventDefault(); e.stopPropagation(); if (type === 'click') showHelpTooltip(help); });
+  });
+  help.addEventListener('mouseenter', () => showHelpTooltip(help));
+  help.addEventListener('mouseleave', hideHelpTooltip);
+  help.addEventListener('focus', () => showHelpTooltip(help));
+  help.addEventListener('blur', hideHelpTooltip);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.help')) hideHelpTooltip(); });
+window.addEventListener('scroll', hideHelpTooltip, { passive: true });
+window.addEventListener('resize', hideHelpTooltip);
+
+// ── イベント登録 ──
+$('compareBtn').addEventListener('click', runCompare);
+$('clearBtn').addEventListener('click', () => {
+  showConfirmToast('入力した内容をすべてクリアします。よろしいですか？', () => {
+    $('promptA').value = '';
+    $('promptB').value = '';
+    clearTransientSelections();
+    hasCompared = false;
+    render();
+  });
+});
+$('deleteSelectedBtn').addEventListener('click', () =>
+  openConfirm('選択タグを削除しますか？', `${selectedDeleteCount()}件の選択タグを削除します。ウェイト違いは選んだ側だけ削除します。`, deleteSelected)
+);
+$('deleteAllCommonBtn').addEventListener('click', () =>
+  openConfirm('共通タグを一括削除しますか？', `${state.common.length}件の共通タグをA/B両方から削除します。`, deleteAllCommon)
+);
+$('deleteDuplicateABtn').addEventListener('click', () =>
+  openConfirm('Prompt A内の選択した重複を削除しますか？', '打ち消し線が入っているタグだけをPrompt Aから削除します。', deleteDuplicateA)
+);
+$('deleteDuplicateBBtn').addEventListener('click', () =>
+  openConfirm('Prompt B内の選択した重複を削除しますか？', '打ち消し線が入っているタグだけをPrompt Bから削除します。', deleteDuplicateB)
+);
+$('clearSelectionBtn').addEventListener('click', () =>
+  showConfirmToast('すべての選択を解除します。よろしいですか？', clearSelection)
+);
+$('cancelDeleteBtn').addEventListener('click', closeConfirm);
+$('confirmDeleteBtn').addEventListener('click', () => { if (pendingDeleteAction) pendingDeleteAction(); closeConfirm(); });
+$('themeBtn').addEventListener('click', () => {
+  const isLight = document.body.dataset.theme === 'light';
+  document.body.dataset.theme = isLight ? 'dark' : 'light';
+  $('themeBtn').textContent = isLight ? '🌙' : '☀️';
+});
+$('similaritySlider').addEventListener('input', () => {
+  similarityLevel = Number($('similaritySlider').value);
+  $('similarityVal').textContent = similarityLevel;
+  scheduleCompare();
+});
+$('similarEnabled').addEventListener('change', () => scheduleCompare());
+$('spellMode').addEventListener('change', () => scheduleCompare());
+$('meaningMode').addEventListener('change', () => scheduleCompare());
+
+['promptA', 'promptB'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    updatePreviews();
+    scheduleCompare({ clearSelections: true });
+  });
+});
+
+// 保存セット機能
+$('saveSetBtn').addEventListener('click', openSaveSetModal);
+$('cancelSaveSetBtn').addEventListener('click', closeSaveSetModal);
+$('confirmSaveSetBtn').addEventListener('click', confirmSaveSet);
+$('saveSetNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmSaveSet(); });
+$('loadSetBtn').addEventListener('click', openLoadSetModal);
+$('closeLoadSetBtn').addEventListener('click', closeLoadSetModal);
+
+// 全選択・解除・コピー ボタン（data属性で委任）
+document.querySelectorAll('[data-select-all]').forEach(btn => {
+  btn.addEventListener('click', () => selectItems(itemsForGroup(btn.dataset.selectAll)));
+});
+document.querySelectorAll('[data-clear-group]').forEach(btn => {
+  btn.addEventListener('click', () => clearItems(itemsForGroup(btn.dataset.clearGroup)));
+});
+document.querySelectorAll('[data-copy]').forEach(btn => {
+  btn.addEventListener('click', () => copyText(btn.dataset.copy));
+});
+
+// キーボードショートカット
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
+});
+
+// 初期化
+initAccordions();
+$('similarityVal').textContent = similarityLevel;
+updateSavedCountBadge();
+compare();
+})();
+</script>
+</body>
+</html>
